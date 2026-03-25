@@ -83,7 +83,6 @@ model Workspace {
   audiences Audience[]
   tags      Tag[]
   jobs      SystemJob[]
-  templates Template[]
 }
 
 model WorkspaceUser {
@@ -226,7 +225,6 @@ model Template {
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   number     Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
-  workspace  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   campaigns  Campaign[]
 }
 
