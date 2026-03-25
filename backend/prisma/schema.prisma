@@ -1,0 +1,426 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USERS
+// ============================================
+model User {
+  id         String   @id @default(uuid())
+  name       String
+  email      String   @unique
+  password   String
+  role       String   @default("USER")   // ADMIN, USER, AGENT
+  wallet     Float    @default(0.0)
+  planId     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  plan         Plan?          @relation(fields: [planId], references: [id])
+  numbers      Number[]
+  contacts     Contact[]
+  tags         Tag[]
+  audiences    Audience[]
+  templates    Template[]
+  campaigns    Campaign[]
+  chats        Chat[]
+  messages     Message[]
+  clickLogs    ClickLog[]
+  buttonLogs   ButtonLog[]
+  flows        Flow[]
+  flowLogs     FlowLog[]
+  transactions Transaction[]
+  systemLogs   SystemLog[]
+  workspaces   WorkspaceUser[]
+}
+
+// ============================================
+// PLANS
+// ============================================
+model Plan {
+  id        String   @id @default(uuid())
+  name      String
+  price     Float
+  msgLimit  Int
+  createdAt DateTime @default(now())
+  users     User[]
+}
+
+// ============================================
+// TRANSACTIONS
+// ============================================
+model Transaction {
+  id        String   @id @default(uuid())
+  userId    String
+  amount    Float
+  type      String   @default("DEBIT")  // DEBIT, CREDIT
+  note      String?
+  status    String   @default("SUCCESS")
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// WORKSPACES
+// ============================================
+model Workspace {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     WorkspaceUser[]
+  contacts  Contact[]
+  campaigns Campaign[]
+  chats     Chat[]
+  flows     Flow[]
+  audiences Audience[]
+  tags      Tag[]
+  jobs      SystemJob[]
+}
+
+model WorkspaceUser {
+  userId      String
+  workspaceId String
+  role        String   @default("MEMBER")
+  createdAt   DateTime @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@id([userId, workspaceId])
+}
+
+// ============================================
+// NUMBERS — per user, multiple allowed
+// ============================================
+model Number {
+  id               String   @id @default(uuid())
+  userId           String
+  workspaceId      String?
+  phoneNumber      String
+  phoneId          String   @unique  // Meta phone_number_id
+  wabaId           String            // Meta waba_id
+  accessToken      String            // AES-256 encrypted
+  verifyToken      String?
+  status           String   @default("ACTIVE")   // ACTIVE, SUSPENDED, BANNED
+  quality          String   @default("HIGH")      // HIGH, MEDIUM, LOW
+  tier             String   @default("TIER_1")   // TIER_1, TIER_2, TIER_3, UNLIMITED
+  dailyLimit       Int      @default(250)
+  sentToday        Int      @default(0)
+  lastSync         DateTime?
+  createdAt        DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaigns  Campaign[]
+  messages   Message[]
+  templates  Template[]
+  chats      Chat[]
+  health     NumberHealth?
+  apiConfig  ApiConfig?
+}
+
+// ============================================
+// NUMBER HEALTH
+// ============================================
+model NumberHealth {
+  id         String   @id @default(uuid())
+  numberId   String   @unique
+  quality    String   @default("HIGH")
+  tier       String   @default("TIER_1")
+  dailyLimit Int      @default(250)
+  sentToday  Int      @default(0)
+  warning    Boolean  @default(false)
+  lastSync   DateTime?
+  updatedAt  DateTime @updatedAt
+
+  number     Number   @relation(fields: [numberId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// API CONFIG (per number)
+// ============================================
+model ApiConfig {
+  id          String   @id @default(uuid())
+  numberId    String   @unique
+  webhookUrl  String?
+  verifyToken String?
+  updatedAt   DateTime @updatedAt
+
+  number      Number   @relation(fields: [numberId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// CONTACTS
+// ============================================
+model Contact {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String?
+  phone       String   @unique
+  name        String?
+  attributes  String?  // JSON
+  createdAt   DateTime @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  messages    Message[]
+  chats       Chat[]
+  tags        Tag[]
+  audiences   Audience[]
+  clickLogs   ClickLog[]
+  buttonLogs  ButtonLog[]
+}
+
+// ============================================
+// TAGS
+// ============================================
+model Tag {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String?
+  name        String
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  contacts    Contact[]
+}
+
+// ============================================
+// AUDIENCES
+// ============================================
+model Audience {
+  id          String   @id @default(uuid())
+  userId      String
+  workspaceId String?
+  name        String
+  filters     String?  // JSON snapshot of filters used
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  contacts    Contact[]
+  campaigns   Campaign[]
+}
+
+// ============================================
+// TEMPLATES
+// ============================================
+model Template {
+  id             String   @id @default(uuid())
+  userId         String
+  numberId       String?
+  templateName   String
+  language       String   @default("en_US")
+  category       String   @default("MARKETING")
+  status         String   @default("APPROVED")   // PENDING, APPROVED, REJECTED
+  metaTemplateId String?                          // Meta's template ID
+  components     String?  // JSON
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  number     Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
+  campaigns  Campaign[]
+}
+
+// ============================================
+// CAMPAIGNS
+// ============================================
+model Campaign {
+  id             String    @id @default(uuid())
+  userId         String
+  numberId       String?
+  templateId     String?
+  audienceId     String?
+  workspaceId    String?
+  name           String
+  status         String    @default("DRAFT")  // DRAFT, RUNNING, PAUSED, COMPLETED, FAILED
+  totalContacts  Int       @default(0)
+  sent           Int       @default(0)
+  delivered      Int       @default(0)
+  read           Int       @default(0)
+  failed         Int       @default(0)
+  cost           Float     @default(0.0)
+  scheduledAt    DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  number     Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
+  template   Template?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  audience   Audience?  @relation(fields: [audienceId], references: [id], onDelete: SetNull)
+  workspace  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  messages   Message[]
+  queue      Queue[]
+}
+
+// ============================================
+// QUEUE (surrogate for Redis queue)
+// ============================================
+model Queue {
+  id         String   @id @default(uuid())
+  userId     String
+  campaignId String
+  contactId  String
+  numberId   String?
+  templateId String?
+  status     String   @default("PENDING")  // PENDING, PROCESSING, SENT, FAILED
+  attempts   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// MESSAGES
+// ============================================
+model Message {
+  id             String   @id @default(uuid())
+  userId         String?
+  campaignId     String?
+  contactId      String
+  numberId       String?
+  templateId     String?
+  chatId         String?
+  metaMessageId  String?  @unique
+  body           String
+  direction      String   // OUTBOUND, INBOUND, NOTE
+  status         String   @default("PENDING")
+  cost           Float    @default(0.0)
+  isRead         Boolean  @default(false)
+  reply          String?
+  buttonPayload  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user       User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contact    Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  number     Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
+  chat       Chat?      @relation(fields: [chatId], references: [id], onDelete: SetNull)
+  clickLogs  ClickLog[]
+  buttonLogs ButtonLog[]
+}
+
+// ============================================
+// CHATS (Shared Inbox)
+// ============================================
+model Chat {
+  id          String   @id @default(uuid())
+  userId      String?
+  workspaceId String?
+  numberId    String?
+  contactId   String
+  status      String   @default("OPEN")  // OPEN, CLOSED, SNOOZED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  number    Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
+  contact   Contact    @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  messages  Message[]
+}
+
+// ============================================
+// CLICK LOGS
+// ============================================
+model ClickLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  campaignId String?
+  contactId  String?
+  messageId  String
+  url        String
+  clickedAt  DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contact    Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// BUTTON LOGS
+// ============================================
+model ButtonLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  campaignId    String?
+  contactId     String?
+  messageId     String
+  payload       String
+  buttonText    String
+  clickedAt     DateTime @default(now())
+
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  contact    Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// FLOWS (unified: builder + followups + automation)
+// ============================================
+model Flow {
+  id          String   @id @default(uuid())
+  userId      String?
+  workspaceId String?
+  name        String
+  trigger     String   @default("INBOUND")  // INBOUND, BUTTON, CLICK, TAG, CAMPAIGN
+  nodes       String   // JSON
+  edges       String   // JSON
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  logs        FlowLog[]
+}
+
+// ============================================
+// FLOW LOGS
+// ============================================
+model FlowLog {
+  id          String   @id @default(uuid())
+  userId      String?
+  flowId      String
+  contactId   String?
+  trigger     String
+  result      String?
+  createdAt   DateTime @default(now())
+
+  user        User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  flow        Flow   @relation(fields: [flowId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// SYSTEM JOBS
+// ============================================
+model SystemJob {
+  id          String   @id @default(uuid())
+  type        String
+  payload     String   // JSON
+  status      String   @default("QUEUED")
+  workspaceId String?
+  createdAt   DateTime @default(now())
+  completedAt DateTime?
+
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+}
+
+// ============================================
+// SYSTEM LOGS
+// ============================================
+model SystemLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

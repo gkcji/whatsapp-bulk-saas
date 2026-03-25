@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: whatsapp_saas_mysql
+    restart: always
+    environment:
+      MYSQL_DATABASE: whatsapp_saas
+      MYSQL_ROOT_PASSWORD: supersecretpassword
+      MYSQL_USER: saas_admin
+      MYSQL_PASSWORD: saas_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp_saas_redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+volumes:
+  mysql_data:
+  redis_data:
