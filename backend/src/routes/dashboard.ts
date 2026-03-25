@@ -31,8 +31,7 @@ router.get('/stats', requireAuth, async (req: AuthRequest, res, next) => {
             }),
             prisma.number.findMany({
                 where: { userId },
-                include: { health: true },
-                select: { id: true, phoneNumber: true, quality: true, tier: true, sentToday: true, dailyLimit: true, status: true, health: true }
+                include: { health: true }
             })
         ]);
 

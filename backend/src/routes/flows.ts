@@ -39,7 +39,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response, next: Ne
     try {
         const { name, nodes, edges, isActive } = req.body;
         const flow = await prisma.flow.update({
-            where: { id: req.params.id },
+            where: { id: req.params.id as string },
             data: { name, nodes: JSON.stringify(nodes || []), edges: JSON.stringify(edges || []), isActive }
         });
         res.json({ success: true, flow });
@@ -49,7 +49,7 @@ router.put('/:id', requireAuth, async (req: AuthRequest, res: Response, next: Ne
 // DELETE /api/flows/:id
 router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
-        await prisma.flow.delete({ where: { id: req.params.id } });
+        await prisma.flow.delete({ where: { id: req.params.id as string } });
         res.json({ success: true });
     } catch (e) { next(e); }
 });

@@ -126,10 +126,10 @@ router.post('/:contactId/note', requireAuth, async (req: AuthRequest, res: Respo
     try {
         const userId = req.user!.id;
         const { body } = req.body;
-        const contact = await prisma.contact.findFirst({ where: { id: req.params.contactId, userId } });
+        const contact = await prisma.contact.findFirst({ where: { id: req.params.contactId as string, userId } });
         if (!contact) return res.status(404).json({ error: 'Not found' });
         const msg = await prisma.message.create({
-            data: { userId, contactId: req.params.contactId, body, direction: 'NOTE', status: 'SENT' }
+            data: { userId, contactId: req.params.contactId as string, body, direction: 'NOTE', status: 'SENT' }
         });
         res.json({ message: msg });
     } catch (e) { next(e); }

@@ -147,7 +147,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response, next: Ne
     try {
         const userId = req.user!.id;
         const campaign = await prisma.campaign.findFirst({
-            where: { id: req.params.id, userId },
+            where: { id: req.params.id as string, userId },
             include: {
                 number: { select: { phoneNumber: true, quality: true } },
                 template: { select: { templateName: true, language: true } },
@@ -195,7 +195,7 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response, next: Ne
 router.post('/:id/pause', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        await prisma.campaign.updateMany({ where: { id: req.params.id, userId }, data: { status: 'PAUSED' } });
+        await prisma.campaign.updateMany({ where: { id: req.params.id as string, userId }, data: { status: 'PAUSED' } });
         res.json({ success: true });
     } catch (e) { next(e); }
 });
@@ -204,7 +204,7 @@ router.post('/:id/pause', requireAuth, async (req: AuthRequest, res: Response, n
 router.post('/:id/resume', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        await prisma.campaign.updateMany({ where: { id: req.params.id, userId }, data: { status: 'RUNNING' } });
+        await prisma.campaign.updateMany({ where: { id: req.params.id as string, userId }, data: { status: 'RUNNING' } });
         res.json({ success: true });
     } catch (e) { next(e); }
 });

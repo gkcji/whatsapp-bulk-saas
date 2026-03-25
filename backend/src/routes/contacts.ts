@@ -52,7 +52,7 @@ router.post('/bulk', requireAuth, async (req: AuthRequest, res: Response, next: 
 router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        await prisma.contact.deleteMany({ where: { id: req.params.id, userId } });
+        await prisma.contact.deleteMany({ where: { id: req.params.id as string, userId } });
         res.json({ success: true });
     } catch (e) { next(e); }
 });

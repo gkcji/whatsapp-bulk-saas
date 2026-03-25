@@ -83,7 +83,7 @@ router.get('/templates/sync', requireAuth, requireWorkspaceKeys, async (req: Aut
             await prisma.template.upsert({
                where: { id: t.id },
                update: { templateName: t.name, status: t.status, components: JSON.stringify(t.components) },
-               create: { id: t.id, templateName: t.name, language: t.language, category: t.category, components: JSON.stringify(t.components), status: t.status, workspaceId }
+               create: { id: t.id, templateName: t.name, language: t.language, category: t.category, components: JSON.stringify(t.components), status: t.status, userId: '', workspaceId } as any
             });
             syncedCount++;
         }
@@ -117,7 +117,7 @@ router.post('/templates', requireAuth, requireWorkspaceKeys, async (req: AuthReq
         const response = await axios.post(url, payload, { headers: { Authorization: `Bearer ${token}` } });
         
         await prisma.template.create({
-            data: { id: response.data.id, templateName: name, language: language || "en_US", category: category || "MARKETING", components: JSON.stringify(components), status: response.data.status || "PENDING", workspaceId }
+            data: { id: response.data.id, templateName: name, language: language || "en_US", category: category || "MARKETING", components: JSON.stringify(components), status: response.data.status || "PENDING", userId: '', workspaceId } as any
         });
 
         res.json({ success: true, metaTemplate: response.data });

@@ -6,6 +6,7 @@ import axios from 'axios';
 
 const router = Router();
 const prisma = new PrismaClient();
+const pid = (p: string | string[]): string => Array.isArray(p) ? p[0] : p;
 
 // POST /api/numbers — register a number (per user)
 router.post('/', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -62,9 +63,9 @@ router.get('/', requireAuth, async (req: AuthRequest, res: Response, next: NextF
 router.get('/:id/health', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const number = await prisma.number.findFirst({ where: { id: req.params.id, userId }, include: { health: true } });
+        const number = await prisma.number.findFirst({ where: { id: req.params.id as string, userId } });
         if (!number) return res.status(404).json({ error: 'Number not found' });
-        res.json({ health: number.health, quality: number.quality, tier: number.tier, dailyLimit: number.dailyLimit, sentToday: number.sentToday });
+        res.json({ quality: number.quality, tier: number.tier, dailyLimit: number.dailyLimit, sentToday: number.sentToday });
     } catch (e) { next(e); }
 });
 
@@ -72,7 +73,7 @@ router.get('/:id/health', requireAuth, async (req: AuthRequest, res: Response, n
 router.post('/:id/sync-health', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const number = await prisma.number.findFirst({ where: { id: req.params.id, userId } });
+        const number = await prisma.number.findFirst({ where: { id: pid(req.params.id), userId } });
         if (!number) return res.status(404).json({ error: 'Number not found' });
 
         const token = decrypt(number.accessToken);
@@ -105,7 +106,7 @@ router.post('/:id/sync-health', requireAuth, async (req: AuthRequest, res: Respo
 router.get('/:id/profile', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const number = await prisma.number.findFirst({ where: { id: req.params.id, userId } });
+        const number = await prisma.number.findFirst({ where: { id: pid(req.params.id), userId } });
         if (!number) return res.status(404).json({ error: 'Number not found' });
 
         const token = decrypt(number.accessToken);
@@ -124,7 +125,7 @@ router.get('/:id/profile', requireAuth, async (req: AuthRequest, res: Response, 
 router.post('/:id/profile', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
         const userId = req.user!.id;
-        const number = await prisma.number.findFirst({ where: { id: req.params.id, userId } });
+        const number = await prisma.number.findFirst({ where: { id: pid(req.params.id), userId } });
         if (!number) return res.status(404).json({ error: 'Number not found' });
 
         const { about, address, description, email, vertical, websites, profile_picture_url } = req.body;
