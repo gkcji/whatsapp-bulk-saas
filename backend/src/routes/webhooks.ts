@@ -153,7 +153,8 @@ router.post('/whatsapp', async (req: Request, res: Response) => {
 
 // Meta verification
 router.get('/whatsapp', (req: Request, res: Response) => {
-    if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === process.env.META_WEBHOOK_VERIFY_TOKEN) {
+    const expectedToken = process.env.META_WEBHOOK_VERIFY_TOKEN || "fasttechwaba";
+    if (req.query['hub.mode'] === 'subscribe' && req.query['hub.verify_token'] === expectedToken) {
         res.send(req.query['hub.challenge']);
     } else {
         res.sendStatus(403);
