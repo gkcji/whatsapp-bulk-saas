@@ -8,6 +8,19 @@ const router = Router();
 const prisma = new PrismaClient();
 const pid = (p: string | string[]): string => Array.isArray(p) ? p[0] : p;
 
+// DELETE /api/numbers/:id
+router.delete('/:id', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+        const userId = req.user!.id;
+        const id = pid(req.params.id);
+        await prisma.number.deleteMany({
+            where: { id, userId }
+        });
+        res.json({ success: true, message: "Number deleted successfully" });
+    } catch (e) {
+        next(e);
+    }
+});
 // POST /api/numbers — register a number (per user)
 router.post('/', requireAuth, async (req: AuthRequest, res: Response, next: NextFunction) => {
     try {
