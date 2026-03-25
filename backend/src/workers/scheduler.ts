@@ -1,6 +1,5 @@
 import cron from 'node-cron';
 import { PrismaClient } from '@prisma/client';
-import { campaignQueue } from './campaignWorker';
 
 const prisma = new PrismaClient();
 
@@ -30,38 +29,35 @@ cron.schedule('* * * * *', async () => {
             // Mark as RUNNING immediately to prevent duplicate cron pickups
             await prisma.campaign.update({ where: { id: camp.id }, data: { status: 'RUNNING' }});
             
-            const contacts = await prisma.contact.findMany({ where: { workspaceId: camp.workspaceId }});
-            let jobsAdded = 0;
-            const baseDelayMs = 2000;
+            // Fetch contacts for the campaign and push INTO THE QUEUE TABLE
+            const contacts = await prisma.contact.findMany({ where: { userId: camp.userId }});
             
-            for (const contact of contacts) {
-                await campaignQueue.add('send-message', {
-                     contactId: contact.id,
-                     phone: contact.phone,
-                     templateName: camp.templateId, // assuming templateId stores name for simplicity
-                     workspaceId: camp.workspaceId,
-                     campaignId: camp.id,
-                     delayMs: jobsAdded * baseDelayMs
-                }, { attempts: 3, backoff: { type: 'exponential', delay: 5000 }, removeOnComplete: true });
-                jobsAdded++;
+            if (contacts.length > 0) {
+              await prisma.queue.createMany({
+                data: contacts.map((c: any) => ({
+                  userId: camp.userId,
+                  campaignId: camp.id,
+                  contactId: c.id,
+                  numberId: camp.numberId,
+                  templateId: camp.templateId,
+                  status: 'PENDING'
+                }))
+              });
             }
         }
 
-        // 2. RETARGET RUN & FOLLOWUP:
-        // Find SystemJobs of type 'FOLLOWUP' or 'RETARGET'
+        // 2. FOLLOWUP JOBS:
         const pendingJobs = await prisma.systemJob.findMany({
             where: {
                 status: 'SCHEDULED',
-                createdAt: { lte: now } // In a real app, this would use a 'runAt' column
+                createdAt: { lte: now }
             }
         });
 
         for (const job of pendingJobs) {
             console.log(`[SCHEDULER] Executing Background Job: ${job.type}`);
             await prisma.systemJob.update({ where: { id: job.id }, data: { status: 'PROCESSING' } });
-            
-            // ... Execute Followup/Retarget logic pushing to bullmq ...
-            
+            // Followup logic would go here
             await prisma.systemJob.update({ where: { id: job.id }, data: { status: 'COMPLETED', completedAt: new Date() } });
         }
         

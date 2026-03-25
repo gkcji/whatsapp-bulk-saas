@@ -99,7 +99,7 @@ router.post('/whatsapp', async (req: Request, res: Response) => {
                                         campaignId: origMsg.campaignId,
                                         contactId: contact.id,
                                         userId,
-                                        payload: buttonPayload,
+                                        payload: buttonPayload || '',
                                         buttonText: msgObj.interactive.button_reply.title
                                     }
                                 });

@@ -18,18 +18,18 @@ const requireWorkspaceKeys = async (req: AuthRequest, res: Response, next: NextF
         if (numberId) numberFilter.id = numberId;
 
         const number = await prisma.number.findFirst({ where: numberFilter });
-        if (!number || !number.metaAccessToken) {
+        if (!number || !number.accessToken) {
              return res.status(400).json({ error: 'No Meta Number natively configured for this workspace or number_id.' });
         }
         
-        const rawToken = decrypt(number.metaAccessToken);
+        const rawToken = decrypt(number.accessToken);
         if (!rawToken) return res.status(500).json({ error: 'Decryption payload failure.' });
 
         (req as any).meta = { 
            workspaceId: wu.workspaceId,
            numberId: number.id, 
-           wabaId: number.metaWabaId, 
-           phoneId: number.metaPhoneNumberId, 
+           wabaId: number.wabaId, 
+           phoneId: number.phoneId, 
            token: rawToken 
         };
         next();
@@ -82,8 +82,8 @@ router.get('/templates/sync', requireAuth, requireWorkspaceKeys, async (req: Aut
         for (const t of templates) {
             await prisma.template.upsert({
                where: { id: t.id },
-               update: { name: t.name, status: t.status, components: JSON.stringify(t.components) },
-               create: { id: t.id, name: t.name, language: t.language, category: t.category, components: JSON.stringify(t.components), status: t.status, workspaceId }
+               update: { templateName: t.name, status: t.status, components: JSON.stringify(t.components) },
+               create: { id: t.id, templateName: t.name, language: t.language, category: t.category, components: JSON.stringify(t.components), status: t.status, workspaceId }
             });
             syncedCount++;
         }
@@ -117,7 +117,7 @@ router.post('/templates', requireAuth, requireWorkspaceKeys, async (req: AuthReq
         const response = await axios.post(url, payload, { headers: { Authorization: `Bearer ${token}` } });
         
         await prisma.template.create({
-            data: { id: response.data.id, name, language: language || "en_US", category: category || "MARKETING", components: JSON.stringify(components), status: response.data.status || "PENDING", workspaceId }
+            data: { id: response.data.id, templateName: name, language: language || "en_US", category: category || "MARKETING", components: JSON.stringify(components), status: response.data.status || "PENDING", workspaceId }
         });
 
         res.json({ success: true, metaTemplate: response.data });

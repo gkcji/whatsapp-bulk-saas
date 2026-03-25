@@ -215,6 +215,7 @@ model Template {
   id             String   @id @default(uuid())
   userId         String
   numberId       String?
+  workspaceId    String?
   templateName   String
   language       String   @default("en_US")
   category       String   @default("MARKETING")
@@ -224,6 +225,7 @@ model Template {
 
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   number     Number?    @relation(fields: [numberId], references: [id], onDelete: SetNull)
+  workspace  Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
   campaigns  Campaign[]
 }
 
