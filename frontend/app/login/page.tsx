@@ -18,7 +18,7 @@ export default function LoginPage() {
 
     try {
       // Step 1: Attempt to hit the REAL backend API
-      const res = await axios.post("http://localhost:5000/api/auth/login", {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/login`, {
          email,
          password
       });
@@ -34,7 +34,7 @@ export default function LoginPage() {
       router.push("/dashboard");
     } catch (err: any) {
       if (err.message === "Network Error") {
-         setError("Critical: Node.js Backend is not running on port 5000.");
+         setError("Network Error: Could not connect to API. Please make sure Render Backend is deployed.");
       } else {
          setError(err.response?.data?.error || "Invalid Credentials");
       }

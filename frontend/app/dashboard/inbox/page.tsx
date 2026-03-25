@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { formatIST } from "@/lib/india";
 
-const API = "http://localhost:5000/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const getToken = () => (typeof window !== "undefined" ? localStorage.getItem("token") || "" : "");
 const apiFetch = (path: string, opts?: RequestInit) =>
   fetch(`${API}${path}`, {

@@ -11,7 +11,7 @@ const handler = NextAuth({
       },
       async authorize(credentials) {
         // TODO: Replace with backend API call to verify user and get JWT
-        // const res = await fetch("http://localhost:5000/api/auth/login", { ... })
+        // const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/login`, { ... })
         // const user = await res.json()
         
         if (credentials?.email === "admin@example.com" && credentials.password === "password") {

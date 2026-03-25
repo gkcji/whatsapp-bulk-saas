@@ -19,7 +19,7 @@ export default function RegisterPage() {
 
     try {
       // Step 1: Attempt to register with the REAL backend API
-      const res = await axios.post("http://localhost:5000/api/auth/register", {
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"}/auth/register`, {
          email,
          password,
          name
@@ -34,7 +34,7 @@ export default function RegisterPage() {
       router.push("/dashboard/settings"); // Pushed straight to settings to setup Meta APIs
     } catch (err: any) {
       if (err.message === "Network Error") {
-         setError("Critical: Node.js Backend is not running on port 5000.");
+         setError("Network Error: Could not connect to API. Please make sure Render Backend is deployed.");
       } else {
          setError(err.response?.data?.error || "Registration Failed.");
       }

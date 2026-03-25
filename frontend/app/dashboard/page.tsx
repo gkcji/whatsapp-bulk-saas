@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatINR, toIndianShort, formatIndian } from "@/lib/india";
 
-const API = "http://localhost:5000/api";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 const getToken = () => (typeof window !== "undefined" ? localStorage.getItem("token") || "" : "");
 const apiFetch = (path: string) =>
   fetch(`${API}${path}`, { headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` } });
