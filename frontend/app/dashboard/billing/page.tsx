@@ -37,15 +37,62 @@ export default function BillingCostPage() {
     }
     setLoading(false);
   };
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
 
   const recharge = async () => {
     if (amount <= 0) return alert("Enter valid amount");
     setAdding(true);
     try {
-      await apiFetch("/billing/recharge", { method: "POST", body: JSON.stringify({ amount }) });
-      setAmount(0);
-      loadData();
-    } catch {}
+      const res = await loadRazorpay();
+      if (!res) { alert("Razorpay SDK failed to load"); setAdding(false); return; }
+
+      // 1. Create Order on Backend
+      const orderRes = await apiFetch("/billing/create-order", { method: "POST", body: JSON.stringify({ amount }) });
+      const orderData = await orderRes.json();
+      if (!orderData.success) { alert("Failed to create order"); setAdding(false); return; }
+
+      // 2. Open Razorpay Interface
+      const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'dummy_key',
+          amount: orderData.order.amount,
+          currency: "INR",
+          name: "SaaS Wallet Recharge",
+          description: "Wallet Credits for WhatsApp API",
+          order_id: orderData.order.id,
+          handler: async function (response: any) {
+              // 3. Verify Payment
+              const verifyRes = await apiFetch("/billing/verify-payment", {
+                  method: "POST",
+                  body: JSON.stringify({
+                      razorpay_order_id: response.razorpay_order_id,
+                      razorpay_payment_id: response.razorpay_payment_id,
+                      razorpay_signature: response.razorpay_signature,
+                      amount: amount
+                  })
+              });
+              const vData = await verifyRes.json();
+              if (vData.success) {
+                  alert("Payment Successful! Wallet Recharged.");
+                  setAmount(0);
+                  loadData();
+              } else {
+                  alert("Payment verification failed.");
+              }
+          },
+          theme: { color: "#4f46e5" }
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+    } catch (e) { console.error(e); alert("Something went wrong"); }
     setAdding(false);
   };
 
